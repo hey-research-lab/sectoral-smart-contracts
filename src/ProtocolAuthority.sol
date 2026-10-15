@@ -150,6 +150,12 @@ contract ProtocolAuthority is IProtocolAuthority {
         // the reverse, reads as "off" to every module, which is the kind of
         // silent misconfiguration an operator would rather have refused.
         if ((treasury_ == address(0)) != (feeSchedule_ == address(0))) revert InvalidFeeConfig();
+        // Every fee quote is a call into the schedule. Pointing it at an
+        // address with no code, say a pasted wallet, would make each payment
+        // that reads it revert, so refuse it here instead.
+        if (feeSchedule_ != address(0) && feeSchedule_.code.length == 0) {
+            revert InvalidFeeConfig();
+        }
         treasury = treasury_;
         feeSchedule = feeSchedule_;
         emit FeeConfigUpdated(treasury_, feeSchedule_);

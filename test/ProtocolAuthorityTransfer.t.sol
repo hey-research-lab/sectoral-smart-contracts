@@ -3,6 +3,7 @@ pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {ProtocolAuthority} from "../src/ProtocolAuthority.sol";
+import {FeeSchedule} from "../src/fees/FeeSchedule.sol";
 import "../src/libraries/ProtocolErrors.sol";
 
 contract ProtocolAuthorityTransferTest is Test {
@@ -108,7 +109,7 @@ contract ProtocolAuthorityTransferTest is Test {
 
     function test_fee_routing_is_all_or_nothing() public {
         address treasury = makeAddr("treasury");
-        address schedule = makeAddr("schedule");
+        address schedule = address(new FeeSchedule(admin));
 
         vm.expectRevert(InvalidFeeConfig.selector);
         vm.prank(admin);
@@ -126,6 +127,16 @@ contract ProtocolAuthorityTransferTest is Test {
         vm.prank(admin);
         protocol.setFeeConfig(address(0), address(0));
         assertEq(protocol.treasury(), address(0));
+        assertEq(protocol.feeSchedule(), address(0));
+    }
+
+    function test_fee_schedule_must_be_a_contract() public {
+        address treasury = makeAddr("treasury");
+
+        vm.expectRevert(InvalidFeeConfig.selector);
+        vm.prank(admin);
+        protocol.setFeeConfig(treasury, makeAddr("wallet"));
+
         assertEq(protocol.feeSchedule(), address(0));
     }
 }
