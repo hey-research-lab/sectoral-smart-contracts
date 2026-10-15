@@ -251,6 +251,7 @@ contract AgentController is ReentrancyGuard {
         uint256 len = bytes(label).length;
         if (len == 0 || len > MAX_LABEL_LEN) revert InvalidLabelLength();
         _validateLimits(perTxLimit, dailyLimit, hitlThreshold, allowedRecipients.length);
+        _validateRecipients(allowedRecipients);
 
         agentId = ++agentCount;
 
@@ -306,6 +307,7 @@ contract AgentController is ReentrancyGuard {
             revert AgentAlreadyRevoked();
         }
         _validateLimits(perTxLimit, dailyLimit, hitlThreshold, allowedRecipients.length);
+        _validateRecipients(allowedRecipients);
 
         SpendPolicy storage p = _policies[agentId];
         p.perTxLimit = perTxLimit;
@@ -774,6 +776,20 @@ contract AgentController is ReentrancyGuard {
         if (perTxLimit == 0 || dailyLimit == 0) revert InvalidSpendAmount();
         if (perTxLimit > dailyLimit) revert PerTxLimitExceedsDailyLimit();
         if (allowlistLen > MAX_ALLOWED_RECIPIENTS) revert TooManyAllowedRecipients();
+    }
+
+    /// @dev Holds a whole allowlist to the same rules {addAllowedRecipient}
+    ///      applies one entry at a time: no zero address and no duplicates.
+    ///      The list is capped at MAX_ALLOWED_RECIPIENTS, so the pairwise scan
+    ///      stays cheap.
+    function _validateRecipients(address[] calldata list) internal pure {
+        uint256 n = list.length;
+        for (uint256 i; i < n; ++i) {
+            if (list[i] == address(0)) revert ZeroAddress();
+            for (uint256 j = i + 1; j < n; ++j) {
+                if (list[i] == list[j]) revert RecipientAlreadyAllowed();
+            }
+        }
     }
 
     function _checkAllowlist(SpendPolicy storage p, address recipient) internal view {
