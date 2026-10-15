@@ -186,6 +186,19 @@ contract RequestLedger is ReentrancyGuard {
         emit PaymentRequestFulfilled(requestId, msg.sender, amount, block.timestamp);
     }
 
+    /// @notice What `payer` would be charged to settle a request for `amount`:
+    ///         the fee on top, and the total the token approval has to cover.
+    ///         A confidential request keeps its figure off-chain, so the caller
+    ///         supplies it rather than this reading it from storage.
+    function quotePayment(address payer, uint256 amount)
+        external
+        view
+        returns (uint256 fee, uint256 total)
+    {
+        (fee,) = _quoteFee(payer, amount);
+        total = amount + fee;
+    }
+
     /// @dev Prices the fee owed on a fulfillment. Returns nothing while fees are
     ///      switched off protocol-wide.
     function _quoteFee(address payer, uint256 amount)
