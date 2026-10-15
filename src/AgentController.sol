@@ -247,6 +247,9 @@ contract AgentController is ReentrancyGuard {
     ) external returns (uint256 agentId) {
         if (!registry.isRegistered(msg.sender)) revert ProfileNotFound();
         if (agentSigner == address(0) || token == address(0)) revert ZeroAddress();
+        // Same rule RequestLedger applies to requests: an address with no code
+        // would leave the agent holding a vault no transfer can ever fill.
+        if (token.code.length == 0) revert InvalidToken();
 
         uint256 len = bytes(label).length;
         if (len == 0 || len > MAX_LABEL_LEN) revert InvalidLabelLength();
