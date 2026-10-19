@@ -31,6 +31,9 @@ import {IERC20} from "../src/interfaces/IERC20.sol";
 contract Deploy is Script {
     function run() external {
         uint256 pk = vm.envUint("PRIVATE_KEY");
+        // The account that signs every deployment. Inside a script `msg.sender`
+        // is Foundry's default sender unless `--sender` is passed, not this key.
+        address deployer = vm.addr(pk);
         address compliance = vm.envAddress("COMPLIANCE_AUTHORITY");
         address usdg = vm.envAddress("USDG_ADDRESS");
         address verifierAddr = vm.envOr("TRANSFER_VERIFIER_ADDRESS", address(0));
@@ -52,7 +55,7 @@ contract Deploy is Script {
             console2.log("WARNING: bring-up StubTransferVerifier deployed. Rotate before use.");
         }
         ConfidentialToken confidential = new ConfidentialToken(
-            IERC20(usdg), IConfidentialTransferVerifier(verifierAddr), msg.sender
+            IERC20(usdg), IConfidentialTransferVerifier(verifierAddr), deployer
         );
 
         // The fee layer. Given a destination for the proceeds, this deploys the
@@ -61,7 +64,7 @@ contract Deploy is Script {
         address treasury = vm.envOr("TREASURY", address(0));
         FeeSchedule feeSchedule;
         if (treasury != address(0)) {
-            feeSchedule = new FeeSchedule(msg.sender);
+            feeSchedule = new FeeSchedule(deployer);
             protocol.setFeeConfig(treasury, address(feeSchedule));
         }
 
